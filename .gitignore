@@ -1,0 +1,10 @@
+venv/
+.venv/
+Song/
+.vscode/
+__pycache__/
+*.pyc
+*.log
+cookies.txt
+config.json
+spotdl.exe
