@@ -1,3 +1,4 @@
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QGroupBox, QTextEdit,
     QPushButton, QLabel, QTableWidget, QHeaderView,
@@ -67,13 +68,14 @@ class DownloadTabMixin:
         queue_layout = QVBoxLayout(queue_group)
         queue_layout.setSpacing(6)
 
-        self.tbl_queue = QTableWidget(0, 5)
-        self.tbl_queue.setHorizontalHeaderLabels(["#", "Tipe", "Judul Lagu", "Link / Target Query", "Status"])
+        self.tbl_queue = QTableWidget(0, 6)
+        self.tbl_queue.setHorizontalHeaderLabels(["#", "Tipe", "Judul Lagu", "Link / Target Query", "Status", "File Path"])
         self.tbl_queue.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self.tbl_queue.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.tbl_queue.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Interactive)
         self.tbl_queue.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         self.tbl_queue.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+        self.tbl_queue.setColumnHidden(5, True)
         self.tbl_queue.setColumnWidth(2, 200)
         self.tbl_queue.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.tbl_queue.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
@@ -99,11 +101,15 @@ class DownloadTabMixin:
         """)
         queue_layout.addWidget(self.tbl_queue)
 
+        # Aktifkan context menu klik kanan pada tabel antrean
+        self.tbl_queue.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tbl_queue.customContextMenuRequested.connect(self.show_queue_context_menu)
+
         # Kontrol Antrean (Download All, Download Selected, Stop, Reset, Delete)
         queue_ctrl_layout = QHBoxLayout()
         queue_ctrl_layout.setSpacing(8)
 
-        self.btn_download_all = QPushButton("▶ Download Semua Antrean")
+        self.btn_download_all = QPushButton("▶️ Download")
         self.btn_download_all.setStyleSheet("""
             QPushButton {
                 background-color: #1DB954;
@@ -132,7 +138,7 @@ class DownloadTabMixin:
         """)
         self.btn_download_selected.clicked.connect(self.start_download_selected)
 
-        self.btn_stop = QPushButton("⏹ Batalkan / Stop")
+        self.btn_stop = QPushButton("⏹ Batalkan")
         self.btn_stop.setEnabled(False)
         self.btn_stop.setStyleSheet("""
             QPushButton {
@@ -147,7 +153,7 @@ class DownloadTabMixin:
         """)
         self.btn_stop.clicked.connect(self.stop_queue_download)
 
-        btn_retry_failed = QPushButton("🔄 Reset Status Gagal")
+        btn_retry_failed = QPushButton("🔄 Reset Gagal")
         btn_retry_failed.setToolTip("Kembalikan item berstatus Gagal menjadi Menunggu agar dapat diunduh ulang")
         btn_retry_failed.clicked.connect(self.reset_failed_items)
 
@@ -158,10 +164,10 @@ class DownloadTabMixin:
         btn_remove_done.clicked.connect(self.remove_finished_items)
 
         queue_ctrl_layout.addWidget(self.btn_download_all)
-        queue_ctrl_layout.addWidget(self.btn_download_selected)
+        # queue_ctrl_layout.addWidget(self.btn_download_selected)
         queue_ctrl_layout.addWidget(self.btn_stop)
         queue_ctrl_layout.addWidget(btn_retry_failed)
-        queue_ctrl_layout.addWidget(btn_remove_selected)
+        # queue_ctrl_layout.addWidget(btn_remove_selected)
         queue_ctrl_layout.addWidget(btn_remove_done)
         queue_ctrl_layout.addStretch()
 
@@ -169,7 +175,7 @@ class DownloadTabMixin:
         tab_layout.addWidget(queue_group, 1)
 
         # Bagian 3: Live Terminal Log
-        log_group = QGroupBox("💻 Live Terminal Log")
+        log_group = QGroupBox("💻 Terminal Log")
         log_layout = QVBoxLayout(log_group)
         log_layout.setSpacing(4)
 

@@ -22,6 +22,8 @@ _TITLE_PATTERNS = [
     re.compile(r'Fetching\s+(?:metadata\s+for\s+)?(.+)', re.IGNORECASE),
     # "Song: Artist - Title"
     re.compile(r'^Song\s*:\s*(.+)', re.IGNORECASE),
+    # "Skipping Artist - Title (file already exists)"
+    re.compile(r'Skipping\s+(.+?)\s*\(file already exists\)', re.IGNORECASE),
 ]
 
 

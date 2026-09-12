@@ -155,7 +155,7 @@ class SettingTabMixin:
         self.lbl_save_status = QLabel("✅ Pengaturan otomatis tersimpan setiap ada perubahan.")
         self.lbl_save_status.setStyleSheet("color: #57ab5a; font-size: 12px;")
 
-        btn_save_now = QPushButton("💾 Simpan Pengaturan Sekarang")
+        btn_save_now = QPushButton("💾 Simpan")
         btn_save_now.setStyleSheet("background-color: #1f6feb; color: white; font-weight: bold; padding: 6px 14px;")
         btn_save_now.clicked.connect(lambda: (self.save_settings(), QMessageBox.information(self, "Tersimpan", "Pengaturan berhasil disimpan!")))
 

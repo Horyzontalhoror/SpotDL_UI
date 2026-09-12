@@ -1,5 +1,8 @@
+import os
 import sys
+import time
 import subprocess
+from pathlib import Path
 from PyQt6.QtCore import QProcess
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QMessageBox
@@ -82,6 +85,22 @@ class QueueEngineMixin:
         self.append_log(f"   Command: {display_string}\n")
         self.append_log("-" * 65 + "\n")
 
+        # Catat daftar file sebelum download untuk mendeteksi file hasil download
+        out_dir = self.txt_output_dir.text().strip() or getattr(self, "default_song_dir", "")
+        self._download_start_time = time.time()
+        self._pre_download_files = {}
+        if out_dir and os.path.exists(out_dir):
+            try:
+                for root, _, files in os.walk(out_dir):
+                    for f in files:
+                        p = os.path.join(root, f)
+                        try:
+                            self._pre_download_files[p] = os.path.getmtime(p)
+                        except OSError:
+                            pass
+            except Exception:
+                pass
+
         self.process = QProcess(self)
         self.process.setWorkingDirectory(self.current_dir)
         self.process.readyReadStandardOutput.connect(self.on_stdout)
@@ -100,9 +119,21 @@ class QueueEngineMixin:
             if self.is_stopped_manually:
                 status_item.setText("⏹ Dibatalkan")
                 status_item.setForeground(QColor("#f85149"))
+                path_item = self.tbl_queue.item(row, 5)
+                if path_item:
+                    path_item.setText("")
             elif exit_code == 0:
                 status_item.setText("✅ Selesai")
                 status_item.setForeground(QColor("#57ab5a"))
+
+                # Cari dan simpan lokasi file yang baru selesai diunduh
+                downloaded_file = self.resolve_downloaded_file(row)
+                if downloaded_file:
+                    self.set_download_file_path(row, downloaded_file)
+                    title_item = self.tbl_queue.item(row, 2)
+                    if title_item and title_item.text() in ("—", "", "..."):
+                        title_item.setText(Path(downloaded_file).stem)
+
                 # Finalisasi warna kolom Judul Lagu menjadi hijau (berhasil)
                 title_item = self.tbl_queue.item(row, 2)
                 if title_item and title_item.text() not in ("—", "", "..."):
@@ -111,6 +142,9 @@ class QueueEngineMixin:
             else:
                 status_item.setText("❌ Gagal")
                 status_item.setForeground(QColor("#f85149"))
+                path_item = self.tbl_queue.item(row, 5)
+                if path_item:
+                    path_item.setText("")
                 self.append_log(f"⚠️ [Antrean #{row + 1}] Gagal diunduh (Kode: {exit_code}).\n\n")
 
         self.current_queue_row = None
