@@ -7,6 +7,7 @@ import subprocess
 import platform
 import time
 import re
+import urllib.parse
 from pathlib import Path
 
 class LinkManagerMixin:
@@ -27,6 +28,54 @@ class LinkManagerMixin:
         else:
             return "Query / Audio"
 
+    def normalize_link_for_comparison(self, link_str: str) -> str:
+        """
+        Normalisasi link untuk perbandingan duplikat.
+        Menghilangkan parameter pelacak (seperti ?si=...) dan trailing slash.
+        """
+        link = link_str.strip()
+        if not link:
+            return ""
+
+        # Jika kombinasi (YT + Spotify)
+        if "|" in link:
+            parts = [self.normalize_link_for_comparison(p) for p in link.split("|")]
+            return "|".join(parts)
+
+        try:
+            parsed = urllib.parse.urlparse(link)
+            if parsed.scheme and parsed.netloc:
+                netloc = parsed.netloc.lower()
+                if netloc.startswith("www."):
+                    netloc = netloc[4:]
+
+                path = parsed.path.rstrip("/")
+
+                # Spotify (track, album, playlist, artist, episode)
+                if "spotify.com" in netloc:
+                    return f"spotify.com{path}"
+
+                # YouTube video watch
+                if "youtube.com" in netloc:
+                    qs = urllib.parse.parse_qs(parsed.query)
+                    video_id = qs.get("v", [""])[0]
+                    if video_id:
+                        return f"youtube.com/watch?v={video_id}"
+                    return f"youtube.com{path}"
+
+                # YouTube short URL (youtu.be/<id>)
+                if "youtu.be" in netloc:
+                    video_id = path.lstrip("/")
+                    if video_id:
+                        return f"youtube.com/watch?v={video_id}"
+                    return f"youtu.be{path}"
+
+                return f"{netloc}{path}"
+        except Exception:
+            pass
+
+        return link.lower()
+
     def add_links_to_queue(self):
         raw_text = self.txt_multi_links.toPlainText()
         lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
@@ -34,8 +83,35 @@ class LinkManagerMixin:
             QMessageBox.warning(self, "Input Kosong", "Silakan masukkan setidaknya satu link pada kotak input.")
             return
 
+        # Kumpulkan semua link yang sudah ditampilkan di tabel antrean
+        existing_keys = set()
+        for r in range(self.tbl_queue.rowCount()):
+            item = self.tbl_queue.item(r, 3)
+            if item and item.text().strip():
+                orig = item.text().strip()
+                existing_keys.add(orig)
+                norm = self.normalize_link_for_comparison(orig)
+                if norm:
+                    existing_keys.add(norm)
+
         added_count = 0
+        duplicate_count = 0
+        duplicate_samples = []
+
         for line in lines:
+            norm_line = self.normalize_link_for_comparison(line)
+            # Cek apakah link sudah ada di tabel antrean atau duplikat dalam batch input saat ini
+            if line in existing_keys or (norm_line and norm_line in existing_keys):
+                duplicate_count += 1
+                if len(duplicate_samples) < 3:
+                    duplicate_samples.append(line)
+                continue
+
+            # Daftarkan link ke set agar tidak duplikat dengan baris berikutnya dalam batch input yang sama
+            existing_keys.add(line)
+            if norm_line:
+                existing_keys.add(norm_line)
+
             link_type = self.detect_link_type(line)
             row = self.tbl_queue.rowCount()
             self.tbl_queue.insertRow(row)
@@ -62,9 +138,39 @@ class LinkManagerMixin:
             self.tbl_queue.setItem(row, 5, item_path)   # Path (kol. 5)
             added_count += 1
 
-        self.txt_multi_links.clear()
         self.update_queue_count()
-        self.append_log(f"➕ Ditambahkan {added_count} link ke daftar antrean.\n")
+
+        # Tangani skenario jika ditemukan link duplikat
+        if duplicate_count > 0:
+            sample_str = "\n• ".join(duplicate_samples)
+            if duplicate_count > len(duplicate_samples):
+                sample_str += f"\n• ... dan {duplicate_count - len(duplicate_samples)} link lainnya"
+
+            if added_count == 0:
+                # Semua link yang diinput adalah duplikat
+                self.append_log(
+                    f"⚠️ [Duplikat] Semua {duplicate_count} link sudah ada di dalam antrean. Tidak ada link yang ditambahkan.\n"
+                )
+                QMessageBox.warning(
+                    self,
+                    "Link Duplikat",
+                    f"Semua link ({duplicate_count}) yang dimasukkan sudah ada di dalam antrean:\n\n• {sample_str}"
+                )
+            else:
+                # Sebagian baru, sebagian duplikat
+                self.txt_multi_links.clear()
+                self.append_log(
+                    f"➕ Ditambahkan {added_count} link ke antrean. (⚠️ {duplicate_count} link duplikat dilewati)\n"
+                )
+                QMessageBox.information(
+                    self,
+                    "Link Duplikat Ditemukan",
+                    f"Berhasil menambahkan {added_count} link baru ke antrean.\n\n"
+                    f"Sebanyak {duplicate_count} link duplikat dilewati karena sudah ada di antrean:\n• {sample_str}"
+                )
+        else:
+            self.txt_multi_links.clear()
+            self.append_log(f"➕ Ditambahkan {added_count} link ke daftar antrean.\n")
 
     def update_queue_count(self):
         total = self.tbl_queue.rowCount()
@@ -100,6 +206,48 @@ class LinkManagerMixin:
                 self.tbl_queue.removeRow(r)
         self.reindex_queue()
         self.update_queue_count()
+
+    def remove_duplicate_items(self):
+        """Menghapus item duplikat yang ada di tabel antrean (mempertahankan baris pertama)."""
+        seen_keys = set()
+        duplicates_to_remove = []
+
+        current_active = getattr(self, "current_queue_row", None)
+
+        for r in range(self.tbl_queue.rowCount()):
+            # Jangan hapus baris yang sedang aktif didownload
+            if r == current_active:
+                continue
+
+            item = self.tbl_queue.item(r, 3)
+            if item and item.text().strip():
+                orig = item.text().strip()
+                norm = self.normalize_link_for_comparison(orig)
+                key = norm if norm else orig
+
+                if key in seen_keys or orig in seen_keys:
+                    duplicates_to_remove.append(r)
+                else:
+                    seen_keys.add(key)
+                    seen_keys.add(orig)
+
+        if not duplicates_to_remove:
+            self.append_log("ℹ️ [Sistem] Tidak ditemukan link duplikat di daftar antrean.\n")
+            QMessageBox.information(self, "Bersihkan Duplikat", "Tidak ditemukan link duplikat di dalam daftar antrean.")
+            return 0
+
+        for r in sorted(duplicates_to_remove, reverse=True):
+            self.tbl_queue.removeRow(r)
+
+        self.reindex_queue()
+        self.update_queue_count()
+        self.append_log(f"🧹 Berhasil membersihkan {len(duplicates_to_remove)} link duplikat dari antrean.\n")
+        QMessageBox.information(
+            self,
+            "Duplikat Dibersihkan",
+            f"Berhasil menghapus {len(duplicates_to_remove)} link duplikat dari daftar antrean."
+        )
+        return len(duplicates_to_remove)
 
     def reset_failed_items(self):
         count = 0
@@ -360,6 +508,12 @@ class LinkManagerMixin:
         act_delete.setEnabled(can_delete)
         act_delete.triggered.connect(self.remove_selected_items)
         menu.addAction(act_delete)
+
+        # Aksi: Hapus Duplikat Antrean
+        act_clean_dups = QAction("🧹 Hapus Duplikat Antrean", self)
+        act_clean_dups.setEnabled(not is_queue_running and self.tbl_queue.rowCount() > 1)
+        act_clean_dups.triggered.connect(self.remove_duplicate_items)
+        menu.addAction(act_clean_dups)
 
         # 3. Aksi: Reset Gagal
         act_reset = QAction("🔄 Reset Gagal", self)

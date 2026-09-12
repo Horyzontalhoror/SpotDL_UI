@@ -163,12 +163,17 @@ class DownloadTabMixin:
         btn_remove_done = QPushButton("🧹 Hapus Selesai")
         btn_remove_done.clicked.connect(self.remove_finished_items)
 
+        btn_remove_duplicates = QPushButton("🧹 Hapus Duplikat")
+        btn_remove_duplicates.setToolTip("Bersihkan link duplikat yang ada di antrean")
+        btn_remove_duplicates.clicked.connect(self.remove_duplicate_items)
+
         queue_ctrl_layout.addWidget(self.btn_download_all)
         # queue_ctrl_layout.addWidget(self.btn_download_selected)
         queue_ctrl_layout.addWidget(self.btn_stop)
         queue_ctrl_layout.addWidget(btn_retry_failed)
         # queue_ctrl_layout.addWidget(btn_remove_selected)
         queue_ctrl_layout.addWidget(btn_remove_done)
+        queue_ctrl_layout.addWidget(btn_remove_duplicates)
         queue_ctrl_layout.addStretch()
 
         queue_layout.addLayout(queue_ctrl_layout)
