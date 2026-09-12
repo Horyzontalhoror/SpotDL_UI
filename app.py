@@ -65,10 +65,11 @@ class SpotDLApp(
         header_text_layout = QVBoxLayout()
         header_text_layout.setSpacing(2)
 
-        title_label = QLabel("🎵 SpotDL Downloader GUI")
+        title_label = QLabel("SpotDL GUI")
         title_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #1DB954;")
 
-        subtitle_label = QLabel("Unduh musik Spotify & YouTube secara batch dengan antrean cerdas dan metadata lengkap")
+        subtitle_label = QLabel('Create by <a href="https://github.com/Horyzontalhoror/SpotDL_UI" style="color:#58a6ff; text-decoration:none;">Horyzontalhoror</a>')
+        subtitle_label.setOpenExternalLinks(True)
         subtitle_label.setStyleSheet("font-size: 12px; color: #888888;")
 
         header_text_layout.addWidget(title_label)
@@ -120,7 +121,7 @@ class SpotDLApp(
         # Tab 1: Download & Antrean
         self.tab_queue = QWidget()
         self.init_tab_queue()
-        self.tabs.addTab(self.tab_queue, "📥 Download & Antrean")
+        self.tabs.addTab(self.tab_queue, "📥 Download")
 
         # Tab 2: Pengaturan
         self.tab_settings = QWidget()
