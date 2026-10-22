@@ -135,13 +135,15 @@ def main():
     os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
     app = QApplication(sys.argv)
 
-    # Theme dark modern dengan aksen Spotify
-    qdarktheme.setup_theme(
-        theme="dark",
-        custom_colors={
-            "primary": "#1DB954"
-        }
-    )
+    # Versi lama pyqtdarktheme hanya menyediakan load_stylesheet().
+    # Gunakan setup_theme bila tersedia agar warna aksen dapat diterapkan.
+    if hasattr(qdarktheme, "setup_theme"):
+        qdarktheme.setup_theme(
+            theme="dark",
+            custom_colors={"primary": "#1DB954"},
+        )
+    else:
+        app.setStyleSheet(qdarktheme.load_stylesheet("dark"))
 
     font = QFont("Segoe UI", 10)
     app.setFont(font)
