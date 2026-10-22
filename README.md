@@ -34,7 +34,7 @@ Aplikasi antarmuka desktop modern (GUI) berbasis **PyQt6** dan **pyqtdarktheme**
 
 Virtual environment (`venv`) telah dibuat dan disiapkan di direktori ini.
 
-### Daftar Paket Pip yang Dibutuhkan ([requirements.txt](file:///e:/Program_Files/python/SpotDL_Python/UI_SpotDl/requirements.txt)):
+### Daftar Paket Pip yang Dibutuhkan
 1. **`PyQt6>=6.5.0`** : Framework antarmuka GUI desktop native.
 2. **`pyqtdarktheme>=2.1.0`** : Tema modern dark mode dengan kustomisasi warna aksen Spotify.
 3. **`spotdl>=4.3.0`** : Core SpotDL downloader (beserta dependensinya: `yt-dlp`, `spotipy`, `mutagen`, `pydub`, dll) jika menggunakan runner Python.
