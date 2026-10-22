@@ -1,6 +1,4 @@
-# UI Core Dependencies
-PyQt6>=6.5.0
-pyqtdarktheme>=2.1.0
-
-# SpotDL CLI & Audio Downloader (Dibutuhkan jika memilih runner Python)
-spotdl>=4.3.0
+PyQt6
+pyqtdarktheme
+spotdl
+setuptools
