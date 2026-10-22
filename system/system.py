@@ -102,9 +102,12 @@ class QueueEngineMixin:
                 pass
 
         self.process = QProcess(self)
+        self.process_reported_error = False
+        self._terminal_tail = ""
         self.process.setWorkingDirectory(self.current_dir)
+        # Satukan stdout dan stderr agar urutannya sama seperti terminal biasa.
+        self.process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
         self.process.readyReadStandardOutput.connect(self.on_stdout)
-        self.process.readyReadStandardError.connect(self.on_stderr)
         self.process.finished.connect(self.on_process_finished)
 
         self.process.start(program, args)
@@ -113,6 +116,10 @@ class QueueEngineMixin:
             self.on_process_finished(-1, QProcess.ExitStatus.CrashExit)
 
     def on_process_finished(self, exit_code, exit_status):
+        # Sebagian program Python baru mengirim output saat proses berakhir.
+        # Kuras buffer terakhir sebelum mencatat status antrean.
+        self.on_stdout()
+
         row = self.current_queue_row
         if row is not None and row < self.tbl_queue.rowCount():
             status_item = self.tbl_queue.item(row, 4)  # Status ada di kolom 4
@@ -122,7 +129,7 @@ class QueueEngineMixin:
                 path_item = self.tbl_queue.item(row, 5)
                 if path_item:
                     path_item.setText("")
-            elif exit_code == 0:
+            elif exit_code == 0 and not self.process_reported_error:
                 status_item.setText("✅ Selesai")
                 status_item.setForeground(QColor("#57ab5a"))
 
@@ -145,7 +152,8 @@ class QueueEngineMixin:
                 path_item = self.tbl_queue.item(row, 5)
                 if path_item:
                     path_item.setText("")
-                self.append_log(f"⚠️ [Antrean #{row + 1}] Gagal diunduh (Kode: {exit_code}).\n\n")
+                detail = "SpotDL melaporkan error" if self.process_reported_error else f"Kode: {exit_code}"
+                self.append_log(f"⚠️ [Antrean #{row + 1}] Gagal diunduh ({detail}).\n\n")
 
         self.current_queue_row = None
         self.update_queue_count()

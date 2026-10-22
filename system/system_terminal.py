@@ -4,6 +4,12 @@ from PyQt6.QtGui import QColor, QTextCursor
 from PyQt6.QtWidgets import QFileDialog, QMessageBox
 
 ANSI_ESCAPE_RE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+_FAILURE_MARKERS = (
+    "audioprovidererror",
+    "yt-dlp download error",
+    "failed to download",
+    "fatal:",
+)
 
 # Pola regex untuk menangkap judul lagu dari output SpotDL
 # SpotDL biasanya mencetak:
@@ -92,17 +98,23 @@ class TerminalLoggerMixin:
         text = raw_data.decode("utf-8", errors="replace")
         clean_text = ANSI_ESCAPE_RE.sub('', text)
 
-        lines = clean_text.split('\r')
-        for i, chunk in enumerate(lines):
-            if i > 0:
-                cursor = self.txt_log.textCursor()
-                cursor.movePosition(QTextCursor.MoveOperation.End)
-                cursor.select(QTextCursor.SelectionType.BlockUnderCursor)
-                cursor.removeSelectedText()
-            self.append_log(chunk)
+        # Rich/TQDM memakai carriage return untuk memperbarui satu baris progres.
+        # Simpan setiap pembaruan sebagai baris log agar riwayat terminal lengkap
+        # dan tidak menghapus pesan yang sudah ditampilkan.
+        clean_text = clean_text.replace("\r\n", "\n").replace("\r", "\n")
+        self.append_log(clean_text)
 
-            # Coba ekstrak judul lagu dari setiap baris output
-            self._try_extract_title(chunk)
+        # spotdl 4.x terkadang keluar dengan kode 0 walau penyedia audio gagal.
+        # Simpan sedikit output sebelumnya agar pesan error yang terbagi antarchunk
+        # tetap dapat dideteksi.
+        terminal_tail = getattr(self, "_terminal_tail", "") + clean_text.lower()
+        self._terminal_tail = terminal_tail[-1000:]
+        if any(marker in terminal_tail for marker in _FAILURE_MARKERS):
+            self.process_reported_error = True
+
+        # Coba ekstrak judul lagu dari setiap baris output.
+        for line in clean_text.splitlines():
+            self._try_extract_title(line)
 
     def on_stdout(self):
         if self.process:

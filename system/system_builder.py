@@ -1,3 +1,4 @@
+import os
 import shlex
 from PyQt6.QtWidgets import QApplication
 
@@ -19,6 +20,13 @@ class CommandBuilderMixin:
         program = cmd_parts[0]
         args = cmd_parts[1:]
 
+        # Saat output Python diarahkan ke QProcess, Python dapat menahannya
+        # sampai proses selesai. Mode -u membuat Terminal Log menerima output
+        # spotdl saat download berlangsung.
+        python_launchers = {"python", "python.exe", "py", "py.exe"}
+        if os.path.basename(program).lower() in python_launchers and "-u" not in args:
+            args.insert(0, "-u")
+
         if target_query:
             args.append(target_query)
 
@@ -33,9 +41,8 @@ class CommandBuilderMixin:
 
         audio_fmt = self.combo_format.currentText()
         if audio_fmt:
+            # spotdl 3.x yang digunakan proyek memakai --format.
             args.extend(["--format", audio_fmt])
-
-        args.append("--simple-tui")
 
         extra_flags_str = self.txt_extra_flags.text().strip()
         if extra_flags_str:
