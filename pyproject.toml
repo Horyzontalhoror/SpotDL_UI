@@ -1,0 +1,10 @@
+[project]
+name = "ui-spotdl"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "pyqt6>=6.11.0",
+    "pyqtdarktheme>=2.1.0",
+    "setuptools>=84.2.1",
+    "spotdl>=4.5.2",
+]
