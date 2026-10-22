@@ -30,38 +30,29 @@ Aplikasi antarmuka desktop modern (GUI) berbasis **PyQt6** dan **pyqtdarktheme**
 - **Format Audio**: Pilihan cepat `mp3`, `m4a`, `flac`, `opus`, `ogg`, `wav`.
 - **Live Command Template Preview**: Menampilkan template perintah CLI secara real-time.
 
-## 📦 Instalasi & Virtual Environment (venv)
+## 📦 Instalasi di Komputer Baru (Windows)
 
-Virtual environment (`venv`) telah dibuat dan disiapkan di direktori ini.
+Prasyarat: Windows 10/11 dengan **App Installer** agar perintah `winget` tersedia.
 
-### Daftar Paket Pip yang Dibutuhkan
-1. **`PyQt6>=6.5.0`** : Framework antarmuka GUI desktop native.
-2. **`pyqtdarktheme>=2.1.0`** : Tema modern dark mode dengan kustomisasi warna aksen Spotify.
-3. **`spotdl>=4.3.0`** : Core SpotDL downloader (beserta dependensinya: `yt-dlp`, `spotipy`, `mutagen`, `pydub`, dll) jika menggunakan runner Python.
+1. Clone atau ekstrak proyek, lalu buka PowerShell pada folder proyek.
+2. Jalankan skrip persiapan satu kali:
 
-### Perintah Instalasi Manual (jika diperlukan di komputer/lingkungan lain):
 ```powershell
-# 1. Buat virtual environment
-python -m venv venv
-
-# 2. Aktivasi venv
-# PowerShell:
-.\venv\Scripts\Activate.ps1
-# Atau CMD:
-venv\Scripts\activate.bat
-
-# 3. Install paket yang dibutuhkan
-pip install -r requirements.txt
+powershell -ExecutionPolicy Bypass -File .\setup_windows.ps1
 ```
+
+Skrip ini memasang `uv`, FFmpeg, dan Deno melalui `winget`, lalu menjalankan `uv sync` untuk membuat environment Python dan memasang dependensi yang dikunci di `uv.lock`.
+
+FFmpeg diperlukan untuk konversi audio. Deno diperlukan oleh yt-dlp pada sebagian unduhan YouTube.
 
 ## 🚀 Cara Menjalankan
 
 Anda dapat menjalankan aplikasi dengan salah satu cara berikut:
 
 1. **Klik Dua Kali**:
-   - Jalankan file `run_ui.bat` (otomatis mendeteksi dan menggunakan `venv`).
-2. **Melalui Terminal dengan venv**:
+   - Jalankan file `run_ui.bat` setelah proses persiapan selesai.
+2. **Melalui Terminal**:
    ```powershell
-   .\venv\Scripts\python.exe app.py
+   uv run app.py
    ```
 
