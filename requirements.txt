@@ -1,4 +1,4 @@
-PyQt6
-pyqtdarktheme
-spotdl
-setuptools
+PyQt6>=6.11.0
+pyqtdarktheme>=2.1.0
+spotdl>=4.5.2
+setuptools>=84.2.1
